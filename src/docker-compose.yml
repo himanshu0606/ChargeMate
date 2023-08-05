@@ -1,0 +1,65 @@
+version: '3.8'
+services:    
+    mongo:
+        image: mongo:6.0.2
+        volumes:
+            - mongo_data:/data/db
+        ports:
+            - 27017:27017
+        env_file:
+            - ./.env
+        restart: unless-stopped
+    
+    app:
+        user: $UID:$GID
+        build:
+            context: ./app
+            target: base
+        volumes:
+        - ./app:/app
+        env_file:
+            - ./.env
+        entrypoint: /app/entrypoint.sh
+        # ports:
+        #   - 3000:3000
+    
+    frontend:
+        user: $UID:$GID
+        build:
+            context: ./frontend
+            target: base
+        volumes:
+        - ./frontend:/frontend
+        env_file:
+            - ./.env
+        entrypoint: /frontend/entrypoint.sh
+        # ports:
+        #   - 3000:3000
+    
+    backend:
+        build: ./backend
+        env_file:
+            - ./.env
+        volumes:
+            - ./backend:/app
+        tty: true
+        depends_on:
+            - mongo
+        # ports:
+        #     - 5000:5000
+    
+    web:
+        build: ./nginx/
+        restart: unless-stopped
+        ports:
+            - 80:80
+            - 443:443
+        environment:
+            - BACKEND=5000
+            - FRONTEND=3000
+        depends_on:
+            # - frontend
+            - backend
+
+volumes:
+    mongo_data:
